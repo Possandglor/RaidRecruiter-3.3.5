@@ -2,84 +2,180 @@ local RR = RaidRecruiter
 RR.Chat = RR.Chat or {}
 RR.Chat.Parser = {}
 
--- Словарь синонимов классов (с учетом опечаток и русского/английского)
-local classKeywords = {
-    ["warrior"] = "Воин", ["вар"] = "Воин", ["воин"] = "Воин", ["war"] = "Воин", ["протвар"] = "Воин",
-    ["paladin"] = "Паладин", ["пал"] = "Паладин", ["паладин"] = "Паладин", ["pal"] = "Паладин", ["рпал"] = "Паладин", ["хпал"] = "Паладин", ["ппал"] = "Паладин",
-    ["hunter"] = "Охотник", ["хант"] = "Охотник", ["охотник"] = "Охотник", ["hunt"] = "Охотник",
-    ["rogue"] = "Разбойник", ["рог"] = "Разбойник", ["рога"] = "Разбойник",
-    ["priest"] = "Жрец", ["прист"] = "Жрец", ["жрец"] = "Жрец", ["шп"] = "Жрец", ["дц"] = "Жрец", ["пріст"] = "Жрец", ["хприст"] = "Жрец",
-    ["deathknight"] = "Рыцарь смерти", ["дк"] = "Рыцарь смерти", ["dk"] = "Рыцарь смерти", ["адк"] = "Рыцарь смерти", ["бдк"] = "Рыцарь смерти", ["фдк"] = "Рыцарь смерти",
-    ["shaman"] = "Шаман", ["шам"] = "Шаман", ["шаман"] = "Шаман", ["элем"] = "Шаман", ["энх"] = "Шаман", ["ршам"] = "Шаман",
-    ["mage"] = "Маг", ["маг"] = "Маг", ["mage"] = "Маг", ["фаер"] = "Маг", ["аркан"] = "Маг",
-    ["warlock"] = "Чернокнижник", ["лок"] = "Чернокнижник", ["варлок"] = "Чернокнижник", ["демон"] = "Чернокнижник", ["афли"] = "Чернокнижник",
-    ["druid"] = "Друид", ["дру"] = "Друид", ["друль"] = "Друид", ["друид"] = "Друид", ["сова"] = "Друид", ["кот"] = "Друид", ["мишка"] = "Друид", ["дерево"] = "Друид", ["рдру"] = "Друид"
+-- =======================================================
+-- СЛОВАРИ: спек -> {класс, роль}
+-- Роли: "tanks", "healers", "dps", nil (не определено)
+-- =======================================================
+
+-- Спеки с явной ролью — приоритет над classKeywords
+local specKeywords = {
+    -- Танки
+    ["протвар"]   = { class = "Воин",            role = "tanks" },
+    ["протворіор"]= { class = "Воин",            role = "tanks" },
+    ["фуривар"]   = { class = "Воин",            role = "dps"   },
+    ["армс"]      = { class = "Воин",            role = "dps"   },
+    ["фури"]      = { class = "Воин",            role = "dps"   },
+
+    ["ппал"]      = { class = "Паладин",         role = "tanks" },
+    ["протпал"]   = { class = "Паладин",         role = "tanks" },
+    ["хпал"]      = { class = "Паладин",         role = "healers" },
+    ["холипал"]   = { class = "Паладин",         role = "healers" },
+    ["рпал"]      = { class = "Паладин",         role = "dps"   },
+
+    ["бдк"]       = { class = "Рыцарь смерти",  role = "tanks" },
+    ["блад"]      = { class = "Рыцарь смерти",  role = "tanks" },
+    ["фдк"]       = { class = "Рыцарь смерти",  role = "dps"   },
+    ["фрост дк"]  = { class = "Рыцарь смерти",  role = "dps"   },
+    ["анхли дк"]  = { class = "Рыцарь смерти",  role = "dps"   },
+    ["адк"]       = { class = "Рыцарь смерти",  role = "dps"   },
+
+    ["медвдру"]   = { class = "Друид",           role = "tanks" },
+    ["медведь"]   = { class = "Друид",           role = "tanks" },
+    ["мишка"]     = { class = "Друид",           role = "tanks" },
+    ["рдру"]      = { class = "Друид",           role = "healers" },
+    ["ресто дру"] = { class = "Друид",           role = "healers" },
+    ["рестодру"]  = { class = "Друид",           role = "healers" },
+    ["дерево"]    = { class = "Друид",           role = "healers" },
+    ["сова"]      = { class = "Друид",           role = "dps"   },
+    ["баладру"]   = { class = "Друид",           role = "dps"   },
+    ["кот"]       = { class = "Друид",           role = "dps"   },
+    ["фераль"]    = { class = "Друид",           role = "dps"   },
+
+    ["ршам"]      = { class = "Шаман",           role = "healers" },
+    ["рестошам"]  = { class = "Шаман",           role = "healers" },
+    ["хилшам"]    = { class = "Шаман",           role = "healers" },
+    ["элем"]      = { class = "Шаман",           role = "dps"   },
+    ["энх"]       = { class = "Шаман",           role = "dps"   },
+    ["энхан"]     = { class = "Шаман",           role = "dps"   },
+
+    ["дисц"]      = { class = "Жрец",            role = "healers" },
+    ["дисцпр"]    = { class = "Жрец",            role = "healers" },
+    ["хприст"]    = { class = "Жрец",            role = "healers" },
+    ["хпріст"]    = { class = "Жрец",            role = "healers" },
+    ["холі"]    = { class = "Жрец",            role = "healers" },
+    ["холижрец"]  = { class = "Жрец",            role = "healers" },
+    ["шп"]        = { class = "Жрец",            role = "dps"   },
+    ["шадоу"]     = { class = "Жрец",            role = "dps"   },
+    ["дц"]        = { class = "Жрец",            role = "healers"   },
+
+    -- DPS-only классы / спеки
+    ["хант"]      = { class = "Охотник",         role = "dps"   },
+    ["охотник"]   = { class = "Охотник",         role = "dps"   },
+    ["hunter"]    = { class = "Охотник",         role = "dps"   },
+    ["рог"]       = { class = "Разбойник",       role = "dps"   },
+    ["рога"]      = { class = "Разбойник",       role = "dps"   },
+    ["rogue"]     = { class = "Разбойник",       role = "dps"   },
+    ["маг"]       = { class = "Маг",             role = "dps"   },
+    ["mage"]      = { class = "Маг",             role = "dps"   },
+    ["фаер"]      = { class = "Маг",             role = "dps"   },
+    ["фрост"]     = { class = "Маг",             role = "dps"   },
+    ["аркан"]     = { class = "Маг",             role = "dps"   },
+    ["лок"]       = { class = "Чернокнижник",   role = "dps"   },
+    ["варлок"]    = { class = "Чернокнижник",   role = "dps"   },
+    ["афли"]      = { class = "Чернокнижник",   role = "dps"   },
+    ["демон"]     = { class = "Чернокнижник",   role = "dps"   },
+    ["вар"]       = { class = "Воин",            role = "dps"   }, -- без префикса = фури
 }
 
--- Ключевые слова для инвайта
+-- Запасной словарь для общих слов без спека (роль не определима)
+local classOnly = {
+    ["warrior"] = "Воин",    ["воин"] = "Воин",
+    ["paladin"] = "Паладин", ["пал"] = "Паладин", ["паладин"] = "Паладин", ["pal"] = "Паладин",
+    ["deathknight"] = "Рыцарь смерти", ["дк"] = "Рыцарь смерти", ["dk"] = "Рыцарь смерти",
+    ["shaman"] = "Шаман",    ["шам"] = "Шаман",   ["шаман"] = "Шаман",
+    ["priest"] = "Жрец",     ["прист"] = "Жрец",  ["жрец"] = "Жрец", ["пріст"] = "Жрец",
+    ["druid"] = "Друид",     ["дру"] = "Друид",    ["друид"] = "Друид", ["друль"] = "Друид",
+    ["warlock"] = "Чернокнижник",
+}
+
+-- Ключевые слова-триггеры на инвайт
 local inviteKeywords = {
     ["+"] = true, ["инв"] = true, ["inv"] = true, ["пати"] = true, ["группу"] = true, ["1"] = true
 }
 
--- Ищем класс и гирскор
+-- =======================================================
+-- Основная функция парсинга
+-- =======================================================
 local function ParseMessage(text)
-    -- В WoW символы могут быть в разных регистрах, приводим в нижний
-    -- string.lower не работает с кириллицей корректно во всех локалях 3.3.5, 
-    -- но для простых проверок базового русского клиентов сойдет:
-    -- (Для надежности можно использовать utf8/словари)
     local lowerText = string.lower(text)
-    
+
     local foundClass = "Не определено"
-    -- Простая эвристика поиска
-    for keyword, classicName in pairs(classKeywords) do
-        -- Ищем подстроку
-        if string.find(lowerText, keyword, 1, true) then
-            foundClass = classicName
+    local foundRole  = nil -- nil означает "не ясно, кидаем в заявки"
+
+    -- Сначала ищем более специфичные спеки (длиннее = приоритетнее)
+    -- Сортируем по убыванию длины ключа
+    local sortedSpecs = {}
+    for kw, data in pairs(specKeywords) do
+        table.insert(sortedSpecs, { kw = kw, data = data })
+    end
+    table.sort(sortedSpecs, function(a, b) return #a.kw > #b.kw end)
+
+    for _, entry in ipairs(sortedSpecs) do
+        if string.find(lowerText, entry.kw, 1, true) then
+            foundClass = entry.data.class
+            foundRole  = entry.data.role
             break
         end
     end
-    
-    -- Пытаемся найти GS (например 5.5, 5900, 6k, 6.2k)
-    local gs = text:match("%d+%.%d+") or text:match("%d%d%d%d") or text:match("%d+%.?%d*[kкKК]") or "-"
-    
-    -- Проверка на "инв"-слова, если класс не написали
-    local wantsInvite = false
-    if foundClass ~= "Не определено" or gs ~= "-" then
-        wantsInvite = true
+
+    -- Если спек не нашли, смотрим в общем словаре (класс без роли)
+    if foundRole == nil then
+        for kw, cls in pairs(classOnly) do
+            if string.find(lowerText, kw, 1, true) then
+                foundClass = cls
+                break
+            end
+        end
     end
-    
-    -- Ищем плюсики
+
+    -- GS: 5.5 / 5900 / 6k / 6.2k
+    local gs = text:match("%d+%.%d+") or text:match("%d%d%d%d") or text:match("%d+%.?%d*[kкKК]") or "-"
+
+    -- Определяем, хочет ли человек инвайт
+    local wantsInvite = (foundClass ~= "Не определено" or gs ~= "-")
     for kw in pairs(inviteKeywords) do
         if string.find(lowerText, kw, 1, true) then
             wantsInvite = true
             break
         end
     end
-    
-    return wantsInvite, foundClass, gs
+
+    return wantsInvite, foundClass, foundRole, gs
 end
 
+-- =======================================================
+-- Обработчик входящего ЛС
+-- =======================================================
 function RR.Chat.Parser:OnWhisper(text, sender)
-    -- Очищаем имя от названия сервера (для кросс-сервера, если он гипотетически есть)
     local shortName = sender:match("([^-]+)") or sender
-    
+
     -- Не парсим свои же сообщения
     if shortName == UnitName("player") then return end
-    
-    local wantsInvite, parsedClass, parsedGS = ParseMessage(text)
-    
+
+    local wantsInvite, parsedClass, parsedRole, parsedGS = ParseMessage(text)
+
     if wantsInvite then
-        -- 1. Добавляем в 'Новые заявки'
-        RR.Data:AddPlayerToDB("applicants", shortName, parsedClass, parsedGS, text)
-        
-        -- 2. Если включен автоинвайт, кидаем инвайт
-        if RR.Data:GetConfigValue("autoInvite") then
-            -- Функция 3.3.5
-            InviteUnit(shortName)
-            RR.Utils:Log("Отправлен авто-инвайт: " .. shortName)
+        -- Определяем целевой список:
+        -- Если роль определена — кидаем сразу туда (минуя "Новые заявки")
+        -- Иначе — в "Новые заявки" для ручной сортировки
+        local targetList = parsedRole or "applicants"
+
+        RR.Data:AddPlayerToDB(targetList, shortName, parsedClass, parsedGS, text)
+
+        if parsedRole then
+            local roleName = (parsedRole == "tanks" and "Танки") or
+                             (parsedRole == "healers" and "Хилы") or "ДД"
+            RR.Utils:Log(shortName .. " (" .. parsedClass .. ") → " .. roleName .. " | ГС: " .. parsedGS)
+        else
+            RR.Utils:Log(shortName .. " → Новые заявки (спек не определён) | ГС: " .. parsedGS)
         end
-        
-        -- 3. Обновляем UI (если он открыт)
+
+        -- Авто-инвайт
+        if RR.Data:GetConfigValue("autoInvite") then
+            InviteUnit(shortName)
+        end
+
+        -- Обновляем UI
         if RR.UI.MainWindow.frame and RR.UI.MainWindow.frame:IsShown() then
             RR.UI.MainWindow:Refresh()
         end

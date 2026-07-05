@@ -6,6 +6,8 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
+eventFrame:RegisterEvent("RAID_ROSTER_UPDATE")
+eventFrame:RegisterEvent("PARTY_MEMBERS_CHANGED")
 
 eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if event == "ADDON_LOADED" and arg1 == "RaidRecruiter" then
@@ -23,6 +25,13 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
         -- arg1 = текст сообщения, arg2 = имя отправителя
         if RR.Chat and RR.Chat.Parser then
             RR.Chat.Parser:OnWhisper(arg1, arg2)
+        end
+
+    elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
+        -- Кто-то вышел или зашёл в группу/рейд — синхронизируем ростер
+        local moved = RR.Data:SyncWithGroupRoster()
+        if moved > 0 and RR.UI.MainWindow.frame and RR.UI.MainWindow.frame:IsShown() then
+            RR.UI.MainWindow:Refresh()
         end
     end
 end)

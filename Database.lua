@@ -120,3 +120,54 @@ function RR.Data:MovePlayer(playerName, fromList, toList)
         end
     end
 end
+
+-- Синхронизирует ростер с текущим составом группы/рейда.
+-- Игроков из tanks/healers/dps, которых нет в группе, перемещает в rejected.
+-- Возвращает количество перемещённых игроков.
+function RR.Data:SyncWithGroupRoster()
+    -- Строим словарь кто сейчас в группе/рейде (имя -> true)
+    local inGroup = {}
+    
+    -- Добавляем самого игрока
+    local myName = UnitName("player")
+    if myName then inGroup[myName] = true end
+    
+    -- Проверяем рейд (до 40 слотов)
+    local raidSize = GetNumRaidMembers()
+    if raidSize > 0 then
+        for i = 1, raidSize do
+            local name = UnitName("raid" .. i)
+            if name then inGroup[name] = true end
+        end
+    else
+        -- Если не в рейде, проверяем обычную группу (до 4 участников)
+        local partySize = GetNumPartyMembers()
+        for i = 1, partySize do
+            local name = UnitName("party" .. i)
+            if name then inGroup[name] = true end
+        end
+    end
+    
+    local movedCount = 0
+    local rosterLists = {"tanks", "healers", "dps"}
+    
+    for _, listId in ipairs(rosterLists) do
+        local tab = self:GetListTable(listId)
+        if tab then
+            -- Идем с конца, чтобы безопасно удалять элементы
+            for i = #tab, 1, -1 do
+                local p = tab[i]
+                if not inGroup[p.name] then
+                    -- Игрока нет в группе — перемещаем в отклоненные
+                    local playerObj = table.remove(tab, i)
+                    playerObj.leftReason = "Покинул группу"
+                    table.insert(self.db.rejected, playerObj)
+                    movedCount = movedCount + 1
+                    RR.Utils:Log(p.name .. " покинул группу — перемещён в Отклоненные.")
+                end
+            end
+        end
+    end
+    
+    return movedCount
+end
