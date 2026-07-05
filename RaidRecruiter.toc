@@ -1,0 +1,15 @@
+## Interface: 30300
+## Title: RaidRecruiter
+## Notes: Модульный аддон для автоматизации сбора рейдов в WoW 3.3.5.
+## Author: Vlad & Assistant
+## Version: 0.2
+## SavedVariables: RaidRecruiterDB
+
+Database.lua
+Utils.lua
+Modules\UI\Widgets.lua
+Modules\UI\MinimapButton.lua
+Modules\UI\PlayerList.lua
+Modules\UI\MainWindow.lua
+Modules\Chat\Advertisement.lua
+Core.lua
