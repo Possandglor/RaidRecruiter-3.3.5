@@ -12,4 +12,5 @@ Modules\UI\MinimapButton.lua
 Modules\UI\PlayerList.lua
 Modules\UI\MainWindow.lua
 Modules\Chat\Advertisement.lua
+Modules\Chat\Parser.lua
 Core.lua

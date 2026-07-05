@@ -5,8 +5,9 @@ local RR = RaidRecruiter
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 
-eventFrame:SetScript("OnEvent", function(self, event, arg1)
+eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if event == "ADDON_LOADED" and arg1 == "RaidRecruiter" then
         -- База данных загрузилась с жесткого диска
         RR.Data:Initialize()
@@ -17,6 +18,12 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         RR.UI.MinimapButton:Create()
         
         RR.Utils:Log("Успешно загружен. Наберите /rr или нажмите кнопку у миникарты.")
+        
+    elseif event == "CHAT_MSG_WHISPER" then
+        -- arg1 = текст сообщения, arg2 = имя отправителя
+        if RR.Chat and RR.Chat.Parser then
+            RR.Chat.Parser:OnWhisper(arg1, arg2)
+        end
     end
 end)
 
