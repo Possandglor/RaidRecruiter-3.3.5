@@ -29,9 +29,8 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
 
     elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
         -- Кто-то вышел или зашёл в группу/рейд — синхронизируем ростер
-        local moved = RR.Data:SyncWithGroupRoster()
-        if moved > 0 and RR.UI.MainWindow.frame and RR.UI.MainWindow.frame:IsShown() then
-            RR.UI.MainWindow:Refresh()
+        if RR.Roster and RR.Roster.Scanner then
+            RR.Roster.Scanner:Scan()
         end
     end
 end)

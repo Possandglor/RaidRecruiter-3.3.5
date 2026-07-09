@@ -112,6 +112,7 @@ end
 function RR.Chat.Advertisement:StartBroadcast()
     if self.isBroadcasting then return end
     self.isBroadcasting = true
+    RR.isRecruiting = true  -- Глобальный флаг: сбор активен
     self.timeSinceLast = 0
     
     if not self.frame then
@@ -129,15 +130,16 @@ function RR.Chat.Advertisement:StartBroadcast()
     end)
     
     local interval = tonumber(RR.Data:GetConfigValue("announceInterval")) or 60
-    RR.Utils:Log("Авто-рассылка запущена (интервал: " .. interval .. " сек).")
+    RR.Utils:Log("Сбор запущен. Объявления каждые " .. interval .. " сек. Авто-инвайт по ЛС активен.")
     self:Send() -- Отправляем первый раз сразу
 end
 
 function RR.Chat.Advertisement:StopBroadcast()
     if not self.isBroadcasting then return end
     self.isBroadcasting = false
+    RR.isRecruiting = false  -- Глобальный флаг: сбор остановлен
     if self.frame then
         self.frame:SetScript("OnUpdate", nil)
     end
-    RR.Utils:Log("Авто-рассылка остановлена.")
+    RR.Utils:Log("Сбор остановлен. Авто-инвайт по ЛС отключён.")
 end

@@ -152,14 +152,13 @@ function RR.Chat.Parser:OnWhisper(text, sender)
     -- Не парсим свои же сообщения
     if shortName == UnitName("player") then return end
 
+    -- Если сбор не запущен — ничего не делаем
+    if not RR.isRecruiting then return end
+
     local wantsInvite, parsedClass, parsedRole, parsedGS = ParseMessage(text)
 
     if wantsInvite then
-        -- Определяем целевой список:
-        -- Если роль определена — кидаем сразу туда (минуя "Новые заявки")
-        -- Иначе — в "Новые заявки" для ручной сортировки
         local targetList = parsedRole or "applicants"
-
         RR.Data:AddPlayerToDB(targetList, shortName, parsedClass, parsedGS, text)
 
         if parsedRole then
@@ -170,7 +169,7 @@ function RR.Chat.Parser:OnWhisper(text, sender)
             RR.Utils:Log(shortName .. " → Новые заявки (спек не определён) | ГС: " .. parsedGS)
         end
 
-        -- Авто-инвайт
+        -- Авто-инвайт (только если включён в настройках)
         if RR.Data:GetConfigValue("autoInvite") then
             InviteUnit(shortName)
         end
