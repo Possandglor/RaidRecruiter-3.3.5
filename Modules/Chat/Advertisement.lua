@@ -114,6 +114,9 @@ function RR.Chat.Advertisement:StartBroadcast()
     self.isBroadcasting = true
     RR.isRecruiting = true  -- Глобальный флаг: сбор активен
     self.timeSinceLast = 0
+    if RR.Roster and RR.Roster.Scanner then
+        RR.Roster.Scanner:Scan(true)
+    end
     
     if not self.frame then
         self.frame = CreateFrame("Frame")

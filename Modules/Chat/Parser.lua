@@ -159,7 +159,10 @@ function RR.Chat.Parser:OnWhisper(text, sender)
 
     if wantsInvite then
         local targetList = parsedRole or "applicants"
-        RR.Data:AddPlayerToDB(targetList, shortName, parsedClass, parsedGS, text)
+        local player = RR.Data:UpsertPlayer(targetList, shortName, parsedClass, parsedGS, text)
+        if player then
+            player.autoAdded = nil
+        end
 
         if parsedRole then
             local roleName = (parsedRole == "tanks" and "Танки") or

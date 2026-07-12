@@ -9,6 +9,27 @@ eventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 eventFrame:RegisterEvent("RAID_ROSTER_UPDATE")
 eventFrame:RegisterEvent("PARTY_MEMBERS_CHANGED")
 
+local rosterScanPending = false
+local rosterScanDelay = 0
+
+local function RequestRosterScan()
+    if not (RR.Roster and RR.Roster.Scanner) then return end
+
+    rosterScanPending = true
+    rosterScanDelay = 0.5
+    eventFrame:SetScript("OnUpdate", function(self, elapsed)
+        rosterScanDelay = rosterScanDelay - elapsed
+        if rosterScanDelay > 0 then return end
+
+        self:SetScript("OnUpdate", nil)
+        rosterScanPending = false
+
+        if RR.Roster and RR.Roster.Scanner then
+            RR.Roster.Scanner:Scan(true)
+        end
+    end)
+end
+
 eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if event == "ADDON_LOADED" and arg1 == "RaidRecruiter" then
         -- База данных загрузилась с жесткого диска
@@ -29,9 +50,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
 
     elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
         -- Кто-то вышел или зашёл в группу/рейд — синхронизируем ростер
-        if RR.Roster and RR.Roster.Scanner then
-            RR.Roster.Scanner:Scan()
-        end
+        RequestRosterScan()
     end
 end)
 

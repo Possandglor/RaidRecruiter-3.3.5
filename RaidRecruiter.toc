@@ -13,4 +13,5 @@ Modules\UI\PlayerList.lua
 Modules\UI\MainWindow.lua
 Modules\Chat\Advertisement.lua
 Modules\Chat\Parser.lua
+Modules\Roster\Scanner.lua
 Core.lua

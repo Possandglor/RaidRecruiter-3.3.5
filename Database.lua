@@ -89,6 +89,50 @@ function RR.Data:GetPlayersInList(listId)
     return self:GetListTable(listId) or {}
 end
 
+function RR.Data:FindPlayerInList(listId, name)
+    local tab = self:GetListTable(listId)
+    if not tab then return nil end
+
+    for i, p in ipairs(tab) do
+        if p.name == name then
+            return p, i
+        end
+    end
+
+    return nil
+end
+
+function RR.Data:FindPlayer(name)
+    local lists = {"applicants", "tanks", "healers", "dps", "rejected"}
+
+    for _, listId in ipairs(lists) do
+        local player = self:FindPlayerInList(listId, name)
+        if player then
+            return player, listId
+        end
+    end
+
+    return nil
+end
+
+function RR.Data:BuildPlayerIndex()
+    local index = {}
+    local lists = {"applicants", "tanks", "healers", "dps", "rejected"}
+
+    for _, listId in ipairs(lists) do
+        local tab = self:GetListTable(listId)
+        if tab then
+            for i, p in ipairs(tab) do
+                if p.name then
+                    index[p.name] = {player = p, listId = listId, index = i}
+                end
+            end
+        end
+    end
+
+    return index
+end
+
 function RR.Data:AddPlayerToDB(listId, name, class, gs, whisperText)
     local tab = self:GetListTable(listId)
     if tab then
@@ -98,6 +142,56 @@ function RR.Data:AddPlayerToDB(listId, name, class, gs, whisperText)
         end
         table.insert(tab, {name = name, class = class, gs = gs, whisper = whisperText})
     end
+end
+
+function RR.Data:UpsertPlayer(listId, name, class, gs, whisperText)
+    local targetTab = self:GetListTable(listId)
+    if not targetTab then return nil end
+
+    local player, currentList = self:FindPlayer(name)
+    if player then
+        player.class = class or player.class
+        player.gs = gs or player.gs
+        player.whisper = whisperText or player.whisper
+
+        if currentList ~= listId then
+            self:RemovePlayer(name, currentList)
+            table.insert(targetTab, player)
+        end
+
+        return player
+    end
+
+    player = {name = name, class = class, gs = gs, whisper = whisperText}
+    table.insert(targetTab, player)
+    return player
+end
+
+function RR.Data:RemovePlayer(playerName, listId)
+    local tab = self:GetListTable(listId)
+    if not tab then return false end
+
+    for i = #tab, 1, -1 do
+        if tab[i].name == playerName then
+            table.remove(tab, i)
+            return true
+        end
+    end
+
+    return false
+end
+
+function RR.Data:RemovePlayerEverywhere(playerName)
+    local removed = false
+    local lists = {"applicants", "tanks", "healers", "dps", "rejected"}
+
+    for _, listId in ipairs(lists) do
+        if self:RemovePlayer(playerName, listId) then
+            removed = true
+        end
+    end
+
+    return removed
 end
 
 function RR.Data:MovePlayer(playerName, fromList, toList)

@@ -227,6 +227,9 @@ end
 
 function RR.UI.MainWindow:Show()
     if not self.frame then self:Create() end
+    if RR.Roster and RR.Roster.Scanner then
+        RR.Roster.Scanner:Scan(true)
+    end
     self:Refresh()
     self.frame:Show()
 end
@@ -246,9 +249,23 @@ end
 -- Основной метод обновления данных UI (Читает из Database и рисует в колонках)
 function RR.UI.MainWindow:Refresh()
     if not self.frame then return end
+
+    local cfg = RR.Data:GetConfig()
+    local targets = cfg.targets or {}
+    local titles = {
+        applicants = "Новые заявки " .. #RR.Data:GetPlayersInList("applicants"),
+        tanks = "Танки " .. #RR.Data:GetPlayersInList("tanks") .. "/" .. tostring(targets.tanks or 0),
+        healers = "Хилы " .. #RR.Data:GetPlayersInList("healers") .. "/" .. tostring(targets.healers or 0),
+        dps = "ДД " .. #RR.Data:GetPlayersInList("dps") .. "/" .. tostring(targets.dps or 0),
+        rejected = "Отклоненные",
+    }
     
     -- Проходим по всем созданным спискам
     for listId, listPanel in pairs(self.lists) do
+        if listPanel.SetTitleText then
+            listPanel:SetTitleText(titles[listId] or listPanel.titleText)
+        end
+
         -- Очищаем визуальные элементы
         listPanel:Clear()
         

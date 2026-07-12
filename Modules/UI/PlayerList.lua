@@ -21,6 +21,8 @@ function RR.UI.PlayerList:Create(parent, listId, titleText, width, height)
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOP", frame, "TOP", 0, -8)
     title:SetText(titleText)
+    frame.title = title
+    frame.titleText = titleText
     
     -- Невидимый контейнер для хранения самих кнопок игроков (с отступом от шапки)
     local content = CreateFrame("Frame", nil, frame)
@@ -29,6 +31,10 @@ function RR.UI.PlayerList:Create(parent, listId, titleText, width, height)
     frame.content = content
     
     frame.items = {}
+
+    function frame:SetTitleText(text)
+        self.title:SetText(text or self.titleText)
+    end
 
     -- Очистка списка
     function frame:Clear()
@@ -53,7 +59,7 @@ function RR.UI.PlayerList:Create(parent, listId, titleText, width, height)
         end
         
         -- Имя в цвет класса
-        local colorCode = RR.Utils:GetClassColor(string.upper(class))
+        local colorCode = RR.Utils:GetClassColor(string.upper(class or ""))
         local nameStr = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         nameStr:SetPoint("LEFT", btn, "LEFT", 5, 0)
         nameStr:SetText(("|cff%s%s|r"):format(colorCode, name))
@@ -72,9 +78,21 @@ function RR.UI.PlayerList:Create(parent, listId, titleText, width, height)
             if whisperText then
                 GameTooltip:AddLine("ЛС: " .. whisperText, 0.8, 0.8, 0.8, true)
             end
+            GameTooltip:AddLine("ПКМ: удалить", 1, 0.25, 0.25)
             GameTooltip:Show()
         end)
         btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        btn:RegisterForClicks("RightButtonUp")
+        btn:SetScript("OnClick", function(self, button)
+            if button == "RightButton" then
+                GameTooltip:Hide()
+                if RR.Data:RemovePlayer(name, frame.listId) then
+                    RR.Utils:Log(name .. " удалён из списка.")
+                    RR.UI.MainWindow:Refresh()
+                end
+            end
+        end)
         
         -- Подсветка строки при наведении мышки
         local highlight = btn:CreateTexture(nil, "HIGHLIGHT")
